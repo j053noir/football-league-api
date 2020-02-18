@@ -21,4 +21,10 @@ const requests = morgan(requestFormat, {
 
 logger.requests = requests;
 
+
+logger.header = req => {
+  const date = new Date().toISOString();
+  return `${req.ip} [${date}] ${req.id} "${req.method} ${req.originalUrl}"`;
+};
+
 module.exports = logger;
