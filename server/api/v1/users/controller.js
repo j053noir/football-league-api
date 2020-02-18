@@ -1,5 +1,7 @@
+const users = [];
+
 exports.create = (req, res, next) => {
-  res.json({});
+  res.json(users);
 };
 
 exports.all = (req, res, next) => {
