@@ -1,5 +1,6 @@
 const express = require('express');
 const requestId = require('express-request-id')();
+const bodyParser = require('body-parser');
 
 const logger = require('./config/logger');
 
@@ -9,6 +10,11 @@ const app = express();
 
 app.use(requestId);
 app.use(logger.requests);
+
+// Parse applucation/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }));
+// Parse application/json
+app.use(bodyParser.json());
 
 // Setup router and routes
 app.use('/api', api);
