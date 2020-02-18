@@ -1,10 +1,16 @@
 const express = require('express');
+const morgan = require('morgan');
+
 const logger = require('./config/logger');
 
 const app = express();
 
+app.use(morgan('combined', { stream: { write: (message) => logger.info(message) } }));
+
 app.get('/', (req, res, next) => {
-  res.send('Welcome to the API');
+  res.json({
+    message: 'Welcome to the API',
+  });
 });
 
 app.use((req, res, next) => {
@@ -12,7 +18,6 @@ app.use((req, res, next) => {
   const statusCode = 404;
 
   logger.warn(message);
-
   res.status(statusCode);
   res.json({
     message,
