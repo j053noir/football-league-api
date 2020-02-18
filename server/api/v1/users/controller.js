@@ -130,5 +130,19 @@ exports.update = (req, res, next) => {
 };
 
 exports.delete = (req, res, next) => {
-  res.json({});
+  const userIndex = users.findIndex(u => u.id === +req.params.id);
+
+  if (userIndex >= 0) {
+    next({
+      message: `User (${req.params.id}) not found`,
+      statusCode: 404,
+      type: 'warn',
+    });
+  } else {
+    users.splice(userIndex, 1);
+
+    res.json({
+      message: `User (${+req.params.id}) deleted.`,
+    });
+  }
 };
