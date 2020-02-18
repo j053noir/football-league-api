@@ -1,13 +1,11 @@
 const router = require('express').Router();
 
+const users = require('./users/routes');
+
 router.route('/').get((req, res, next) => {
   res.json({
     message: 'Welcome to the API V1',
   });
 });
 
-router.route('/users').get((req, res, next) => {
-  res.json({
-    message: 'GET all users',
-  });
-});
+router.use('/users', users);
