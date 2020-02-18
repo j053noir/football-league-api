@@ -56,11 +56,21 @@ exports.create = (req, res, next) => {
 };
 
 exports.all = (req, res, next) => {
-  res.json({});
+  res.json(users.slice());
 };
 
 exports.read = (req, res, next) => {
-  res.json({});
+  const user = users.find(u => u.id === +req.params.id);
+
+  if (!user) {
+    next({
+      message: `User (${req.params.id}) not found`,
+      statusCode: 404,
+      type: 'warn',
+    });
+  } else {
+    res.json(user);
+  }
 };
 
 exports.update = (req, res, next) => {
