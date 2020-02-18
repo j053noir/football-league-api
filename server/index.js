@@ -31,10 +31,12 @@ app.use((req, res, next) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-  const { message, statusCode = 500, level = 'error' } = err;
+  const { message, statusCode = 500, level: type = 'error' } = err;
   const log = `${logger.header(req)} ${statusCode} ${message}`;
 
-  logger[level](log);
+  if (typeof logger[type] === 'function') {
+    logger[type](log);
+  }
 
   res.status(statusCode);
   res.json({
