@@ -9,3 +9,5 @@ router.route('/').get((req, res, next) => {
 });
 
 router.use('/users', users);
+
+module.exports = router;
