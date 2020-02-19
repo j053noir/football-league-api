@@ -1,6 +1,7 @@
-const Model = require('./model');
+const { Model, fields } = require('./model');
 
 const { paginationParseParams } = require.main.require('./server/utils');
+const { sortParseParams, sortCompactToStr } = require.main.require('./server/utils');
 
 exports.id = (req, res, next, id) => {
   Model.findById(id)
@@ -43,21 +44,32 @@ exports.create = (req, res, next) => {
 exports.all = (req, res, next) => {
   const { query = {} } = req;
   const { limit, page, skip } = paginationParseParams(query);
+  const { sortBy, direction } = sortParseParams(query, fields);
 
-  const all = Model.find().limit(limit).skip(skip);
+  const all = Model.find()
+    .sort(sortCompactToStr(sortBy, direction))
+    .limit(limit).skip(skip);
   const count = Model.countDocuments();
-  const pages = Math.ceil(count / limit);
 
-  all.then(docs => {
-    res.json({
-      success: true,
-      item: docs,
-      pages,
-      page,
-      limit,
-      skip,
-    });
-  })
+  Promise.all([all.exec(), count.exec()])
+    .then(data => {
+      const [docs, total] = data;
+      const pages = Math.ceil(total / limit);
+
+      res.json({
+        success: true,
+        item: docs,
+        meta: {
+          limit,
+          skip,
+          total,
+          page,
+          pages,
+          sortBy,
+          direction,
+        },
+      });
+    })
     .catch(err => {
       next(new Error(err));
     });
