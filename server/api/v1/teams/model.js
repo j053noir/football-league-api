@@ -7,6 +7,7 @@ const fields = {
     type: String,
     required: true,
     trim: true,
+    unique: true,
   },
   color1: {
     type: String,
@@ -22,4 +23,15 @@ const team = new Schema(fields, {
   timestamps: true,
 });
 
-module.exports = mongoose.model('team', team);
+team.post('save', (error, doc, next) => {
+  if (error.name === 'MongoError' && error.code === 11000) {
+    next('ValidationError: There was a duplicate key error');
+  } else {
+    next();
+  }
+});
+
+module.exports = {
+  Model: mongoose.model('team', team),
+  fields,
+};
