@@ -1,4 +1,26 @@
-const teams = [];
+const Model = require('./model');
+
+exports.id = (req, res, next, id) => {
+  Model.findById(id)
+    .exec()
+    .then(doc => {
+      if (!doc) {
+        const message = `${Model.modelName} with id (${id}) not found`;
+
+        next({
+          message,
+          statusCode: 404,
+          type: 'warn',
+        });
+      } else {
+        req.doc = doc;
+        next();
+      }
+    })
+    .catch(err => {
+      next(new Error(err));
+    });
+};
 
 exports.create = (req, res, next) => {
   const { name = '', color1 = '', color2 = '' } = req.body;
@@ -9,99 +31,63 @@ exports.create = (req, res, next) => {
       statusCode: 422,
       type: 'warn',
     });
-  } else if (teams.find(t => t.name === name)) {
+  } else if (Model.exists({ name }) === true) {
     next({
       message: `"name" (${name}) is already taken.`,
       statusCode: 422,
       type: 'warn',
     });
   } else {
-    const team = {
-      id: teams.length + 1,
-      name,
-      color1,
-      color2,
-    };
+    const document = new Model({ name, color1, color2 });
 
-    teams.push(team);
-    res.status(201);
-    res.json({
-      message: 'Team Created',
-    });
+    document.save()
+      .then(doc => {
+        res.json(doc);
+      })
+      .catch(err => {
+        next(new Error(err));
+      });
   }
 };
 
 exports.all = (req, res, next) => {
-  res.json(teams);
+  Model.find()
+    .exec()
+    .then(docs => {
+      res.json(docs);
+    })
+    .catch(err => {
+      next(new Error(err));
+    });
 };
 
 exports.read = (req, res, next) => {
-  const team = teams.find(t => t.id === +req.params.id);
-
-  if (!team) {
-    next({
-      message: `Team (${req.params.id}) not found`,
-      statusCode: 404,
-      type: 'warn',
-    });
-  } else {
-    res.json(team);
-  }
+  const { doc } = req;
+  res.json(doc);
 };
 
 exports.update = (req, res, next) => {
-  const teamIndex = teams.findIndex(t => t.id === +req.params.id);
+  const { doc, body } = req;
 
-  if (teamIndex >= 0) {
-    next({
-      message: `Team (${req.params.id}) not found`,
-      statusCode: 404,
-      type: 'warn',
+  Object.assign(doc, body);
+
+  doc.save()
+    .then(updated => {
+      res.json(updated);
+    })
+    .catch(err => {
+      next(new Error(err));
     });
-  } else {
-    const { name = '', color1 = '', color2 = '' } = req.body;
-    const team = teams[teamIndex];
-
-    if (name === '') {
-      next({
-        message: 'Param "name" is required.',
-        statusCode: 422,
-        type: 'warn',
-      });
-    }
-
-    team.name = name;
-
-    if (color1 !== '') {
-      team.color1 = color1;
-    }
-
-    if (color2 !== '') {
-      team.color2 = color2;
-    }
-
-    teams.splice(teamIndex, 1, team);
-
-    res.json({
-      message: `Team (${team.id}) updated.`,
-    });
-  }
 };
 
 exports.delete = (req, res, next) => {
-  const teamIndex = teams.findIndex(t => t.id === +req.params.id);
+  const { doc } = req;
 
-  if (teamIndex >= 0) {
-    next({
-      message: `Team (${req.params.id}) not found`,
-      statusCode: 404,
-      type: 'warn',
+  doc.remove()
+    .then(removed => {
+      res.json(removed);
+    })
+    .catch(err => {
+      next(new Error(err));
     });
-  } else {
-    teams.splice(teamIndex, 1);
-
-    res.json({
-      message: `Team (${+req.params.id}) deleted.`,
-    });
-  }
 };
