@@ -10,7 +10,7 @@ exports.connect = () => {
 
   logger.info('Connecting to database...');
 
-  mongoose.connect(url, { useNewUrlParser: true });
+  mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
 
   mongoose.connection.on('open', () => {
     logger.info('Database connected');
@@ -28,6 +28,6 @@ exports.connect = () => {
     mongoose.connection.close(() => {
       logger.info('Database connection disconnected through app termination');
       process.exit(0);
-    })
+    });
   });
-}
+};
