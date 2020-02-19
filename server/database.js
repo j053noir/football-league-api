@@ -10,7 +10,7 @@ exports.connect = () => {
 
   logger.info('Connecting to database...');
 
-  mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
+  mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, autoReconnect: true });
 
   mongoose.connection.on('open', () => {
     logger.info('Database connected');
@@ -18,6 +18,19 @@ exports.connect = () => {
 
   mongoose.connection.on('close', () => {
     logger.info('Database disconnected');
+  });
+
+  mongoose.connection.on('reconnected', () => {
+    logger.info('Database reconnected');
+  });
+
+  mongoose.connection.on('disconnected', () => {
+    logger.info('Database disconnected');
+    mongoose.connect(url, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      autoReconnect: true,
+    });
   });
 
   mongoose.connection.on('error', err => {
