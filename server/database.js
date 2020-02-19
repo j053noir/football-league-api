@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+mongoose.set('useCreateIndex', true);
+
 const config = require('./config');
 const logger = require('./config/logger');
 
@@ -10,7 +12,7 @@ exports.connect = () => {
 
   logger.info('Connecting to database...');
 
-  mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, autoReconnect: true });
+  mongoose.connect(url, { useNewUrlParser: true, autoReconnect: true });
 
   mongoose.connection.on('open', () => {
     logger.info('Database connected');
