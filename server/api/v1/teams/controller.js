@@ -7,10 +7,10 @@ exports.id = (req, res, next, id) => {
       if (!doc) {
         const message = `${Model.modelName} with id (${id}) not found`;
 
-        next({
-          message,
+        res.json({
+          success: false,
           statusCode: 404,
-          type: 'warn',
+          message,
         });
       } else {
         req.doc = doc;
@@ -23,38 +23,29 @@ exports.id = (req, res, next, id) => {
 };
 
 exports.create = (req, res, next) => {
-  const { name = '', color1 = '', color2 = '' } = req.body;
+  const doc = new Model(req.body);
 
-  if (name === '') {
-    next({
-      message: 'Param "name" is required.',
-      statusCode: 422,
-      type: 'warn',
-    });
-  } else if (Model.exists({ name }) === true) {
-    next({
-      message: `"name" (${name}) is already taken.`,
-      statusCode: 422,
-      type: 'warn',
-    });
-  } else {
-    const document = new Model({ name, color1, color2 });
-
-    document.save()
-      .then(doc => {
-        res.json(doc);
-      })
-      .catch(err => {
-        next(new Error(err));
+  doc.save()
+    .then(created => {
+      res.status(201);
+      res.json({
+        success: true,
+        item: created,
       });
-  }
+    })
+    .catch(err => {
+      next(new Error(err));
+    });
 };
 
 exports.all = (req, res, next) => {
   Model.find()
     .exec()
     .then(docs => {
-      res.json(docs);
+      res.json({
+        success: true,
+        item: docs,
+      });
     })
     .catch(err => {
       next(new Error(err));
@@ -63,7 +54,10 @@ exports.all = (req, res, next) => {
 
 exports.read = (req, res, next) => {
   const { doc } = req;
-  res.json(doc);
+  res.json({
+    success: true,
+    item: doc,
+  });
 };
 
 exports.update = (req, res, next) => {
@@ -73,7 +67,10 @@ exports.update = (req, res, next) => {
 
   doc.save()
     .then(updated => {
-      res.json(updated);
+      res.json({
+        success: true,
+        item: updated,
+      });
     })
     .catch(err => {
       next(new Error(err));
@@ -85,7 +82,10 @@ exports.delete = (req, res, next) => {
 
   doc.remove()
     .then(removed => {
-      res.json(removed);
+      res.json({
+        success: true,
+        item: removed,
+      });
     })
     .catch(err => {
       next(new Error(err));

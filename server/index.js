@@ -28,6 +28,7 @@ app.use('/api/v1', api);
 // Not found route handler
 app.use((req, res, next) => {
   next({
+    error: true,
     message: 'Route not found',
     statusCode: 404,
     level: 'warn',
@@ -36,8 +37,13 @@ app.use((req, res, next) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-  const { message, statusCode = 500, level: type = 'error' } = err;
+  const { message, type = 'error' } = err;
+  let { statusCode = 500 } = err;
   const log = `${logger.header(req)} ${statusCode} ${message}`;
+
+  if (err.message.startsWith('ValidationError')) {
+    statusCode = 422;
+  }
 
   if (typeof logger[type] === 'function') {
     logger[type](log);
@@ -45,6 +51,8 @@ app.use((err, req, res, next) => {
 
   res.status(statusCode);
   res.json({
+    error: true,
+    statusCode,
     message,
   });
 });
