@@ -1,5 +1,7 @@
 const Model = require('./model');
 
+const { paginationParseParams } = require.main.require('./server/utils');
+
 exports.id = (req, res, next, id) => {
   Model.findById(id)
     .exec()
@@ -39,14 +41,23 @@ exports.create = (req, res, next) => {
 };
 
 exports.all = (req, res, next) => {
-  Model.find()
-    .exec()
-    .then(docs => {
-      res.json({
-        success: true,
-        item: docs,
-      });
-    })
+  const { query = {} } = req;
+  const { limit, page, skip } = paginationParseParams(query);
+
+  const all = Model.find().limit(limit).skip(skip);
+  const count = Model.countDocuments();
+  const pages = Math.ceil(count / limit);
+
+  all.then(docs => {
+    res.json({
+      success: true,
+      item: docs,
+      pages,
+      page,
+      limit,
+      skip,
+    });
+  })
     .catch(err => {
       next(new Error(err));
     });
