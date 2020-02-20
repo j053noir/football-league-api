@@ -48,6 +48,7 @@ const fields = {
   },
   role: {
     type: String,
+    default: 'player',
     enum: ['admin', 'player'],
   },
 };
