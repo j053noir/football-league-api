@@ -1,148 +1,132 @@
-const users = [];
+const { paginationParseParams } = require.main.require('./server/utils/');
+const { sortParseParams, sortCompactToStr } = require.main.require('./server/utils');
 
-function currentDate() {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()} ${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}`;
-}
+const { Model, fields } = require('./model');
+
+exports.id = (req, res, next, id) => {
+  Model.findById(id)
+    .exec()
+    .then(doc => {
+      if (!doc) {
+        const message = `${Model.modelName} (${id}) not found`;
+
+        res.json({
+          success: false,
+          statusCode: 404,
+          message,
+        });
+      } else {
+        req.doc = doc;
+        next();
+      }
+    })
+    .catch(err => {
+      next(new Error(err));
+    });
+};
 
 exports.create = (req, res, next) => {
-  const { username = '', password = '', confirmPassword } = req.body;
+  const doc = new Model(req.body);
 
-  if (username === '') {
+  doc.save()
+    .then(created => {
+      res.status(201);
+      res.json({
+        success: true,
+        item: created,
+      });
+    })
+    .catch(err => {
+      next(new Error(err));
+    });
+};
+
+exports.all = (req, res, next) => {
+  const { query = {} } = req;
+  const { limit, page, skip } = paginationParseParams(req);
+  const { sortBy, direction } = sortParseParams(query, fields);
+
+  const all = Model.find()
+    .sort(sortCompactToStr(sortBy, direction))
+    .limit(limit)
+    .skip(skip);
+  const count = Model.countDocuments();
+
+  Promise.all([all.exec(), count.exec()])
+    .then(data => {
+      const [docs, total] = data;
+      const pages = Math.ceil(total / limit);
+
+      res.json({
+        success: true,
+        item: docs,
+        meta: {
+          limit,
+          skip,
+          total,
+          page,
+          pages,
+          sortBy,
+          direction,
+        },
+      });
+    })
+    .catch(err => {
+      next(new Error(err));
+    });
+};
+
+exports.read = (req, res, next) => {
+  const { doc } = req;
+
+  res.json({
+    success: true,
+    item: doc,
+  });
+};
+
+exports.update = (req, res, next) => {
+  const { doc, body } = req;
+
+  Object.assign(doc, body);
+
+  if (body.oldPassword !== doc.password) {
     next({
-      message: 'Param "username" is required.',
+      message: 'Params "oldPassword" does not match the user\'s current password.',
       statusCode: 422,
       type: 'warn',
     });
-  } else if (password === '') {
-    next({
-      message: 'Param "password" is required.',
-      statusCode: 422,
-      type: 'warn',
-    });
-  } else if (confirmPassword === '') {
-    next({
-      message: 'Param "confirmPassword" is required.',
-      statusCode: 422,
-      type: 'warn',
-    });
-  } else if (password !== confirmPassword) {
+  } else if (doc.password !== body.confirmPassword) {
     next({
       message: 'Params "password" and confirmPassword must match.',
       statusCode: 422,
       type: 'warn',
     });
-  } else if (users.find(u => u.username === username)) {
-    next({
-      message: `"username" (${username}) is already taken.`,
-      statusCode: 422,
-      type: 'warn',
-    });
-  } else {
-    const user = {
-      id: users.length + 1,
-      username,
-      password,
-      createdAt: currentDate(),
-      updatedAt: null,
-    };
-
-    users.push(user);
-    res.statusCode(201);
-    res.json({
-      message: 'User created',
-    });
   }
-};
 
-exports.all = (req, res, next) => {
-  res.json(users.slice());
-};
-
-exports.read = (req, res, next) => {
-  const user = users.find(u => u.id === +req.params.id);
-
-  if (!user) {
-    next({
-      message: `User (${req.params.id}) not found`,
-      statusCode: 404,
-      type: 'warn',
+  doc.save()
+    .then(updated => {
+      res.json({
+        success: true,
+        item: updated,
+      });
+    })
+    .catch(err => {
+      next(new Error(err));
     });
-  } else {
-    res.json(user);
-  }
-};
-
-exports.update = (req, res, next) => {
-  const userIndex = users.findIndex(u => u.id === +req.params.id);
-  const user = users[userIndex];
-
-  if (userIndex >= 0) {
-    next({
-      message: `User (${req.params.id}) not found`,
-      statusCode: 404,
-      type: 'warn',
-    });
-  } else {
-    const { password = '', confirmPassword = '', oldPassword = '' } = req.body;
-
-    if (password === '') {
-      next({
-        message: 'Param "password" is required.',
-        statusCode: 422,
-        type: 'warn',
-      });
-    } else if (confirmPassword === '') {
-      next({
-        message: 'Param "confirmPassword" is required.',
-        statusCode: 422,
-        type: 'warn',
-      });
-    } else if (confirmPassword === '') {
-      next({
-        message: 'Param "oldPassword" is required.',
-        statusCode: 422,
-        type: 'warn',
-      });
-    } else if (oldPassword !== user.password) {
-      next({
-        message: 'Params "oldPassword" does not match the user\'s current password.',
-        statusCode: 422,
-        type: 'warn',
-      });
-    } else if (password !== confirmPassword) {
-      next({
-        message: 'Params "password" and confirmPassword must match.',
-        statusCode: 422,
-        type: 'warn',
-      });
-    }
-
-    user.password = password;
-    user.updatedAt = currentDate();
-
-    users.splice(userIndex, 1, user);
-
-    res.json({
-      message: `User (${user.id}) updated.`,
-    });
-  }
 };
 
 exports.delete = (req, res, next) => {
-  const userIndex = users.findIndex(u => u.id === +req.params.id);
+  const { doc } = req;
 
-  if (userIndex >= 0) {
-    next({
-      message: `User (${req.params.id}) not found`,
-      statusCode: 404,
-      type: 'warn',
+  doc.remove()
+    .then(removed => {
+      res.json({
+        success: true,
+        item: removed,
+      });
+    })
+    .catch(err => {
+      next(new Error(err));
     });
-  } else {
-    users.splice(userIndex, 1);
-
-    res.json({
-      message: `User (${+req.params.id}) deleted.`,
-    });
-  }
 };
