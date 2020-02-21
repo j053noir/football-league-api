@@ -1,17 +1,18 @@
 const router = require('express').Router();
 const controller = require('./controller');
+const { auth, admin } = require('./../auth');
 
 router.param('id', controller.id);
 
 router
   .route('/')
-  .get(controller.all)
-  .post(controller.create);
+  .get(auth, controller.all)
+  .post(auth, admin, controller.create);
 
 router
   .route('/:id')
-  .get(controller.read)
-  .put(controller.update)
-  .delete(controller.delete);
+  .get(auth, controller.read)
+  .put(auth, admin, controller.update)
+  .delete(auth, admin, controller.delete);
 
 module.exports = router;
