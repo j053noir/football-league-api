@@ -8,7 +8,13 @@ const logger = require('./config/logger');
 
 exports.connect = () => {
   const { database } = config;
-  const url = `mongodb://${database.username}:${database.password}@${database.url}`;
+  let url;
+
+  if (database.username === null || database.password === null) {
+    url = `mongodb://${database.url}`;
+  } else {
+    url = `mongodb://${database.username}:${database.password}@${database.url}`;
+  }
 
   logger.info('Connecting to database...');
 
