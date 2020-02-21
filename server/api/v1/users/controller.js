@@ -2,6 +2,7 @@ const { paginationParseParams } = require.main.require('./server/utils/');
 const { sortParseParams, sortCompactToStr } = require.main.require('./server/utils');
 
 const { Model, fields } = require('./model');
+const { signToken } = require('./../auth');
 
 exports.id = (req, res, next, id) => {
   Model.findById(id)
@@ -129,4 +130,64 @@ exports.delete = (req, res, next) => {
     .catch(err => {
       next(new Error(err));
     });
+};
+
+exports.signin = (req, res, next) => {
+  const { body = {} } = req;
+  const { username = '', password = '' } = body;
+  let message = 'Username or password are required';
+
+  if (username === '' || password === '') {
+    next({
+      success: false,
+      message,
+      statusCode: 4004,
+      type: 'info',
+    });
+  } else {
+    let user = {};
+    Model.findOne({ $or: [{ username }, { email: username }] })
+      .exec()
+      .then(doc => {
+        if (!doc) {
+          message = 'Username or password not valid';
+
+          next({
+            success: false,
+            message,
+            statusCode: 200,
+            type: 'info',
+          });
+        }
+        user = doc;
+        return doc.verifyPassword(password);
+      })
+      .then(verified => {
+        if (!verified) {
+          message = 'Username or password not valid';
+
+          next({
+            success: false,
+            message,
+            statusCode: 200,
+            type: 'info',
+          });
+        } else {
+          const { _id, role = 'player' } = user;
+          const token = signToken({ _id, role });
+
+
+          res.json({
+            success: true,
+            item: user,
+            meta: {
+              token,
+            },
+          });
+        }
+      })
+      .catch(err => {
+        next(new Error(err));
+      });
+  }
 };
